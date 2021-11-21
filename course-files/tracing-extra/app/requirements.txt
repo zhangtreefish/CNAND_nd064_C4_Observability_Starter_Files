@@ -9,9 +9,10 @@ itsdangerous==2.0.1
 jaeger-client==4.3.0
 Jinja2==3.0.3
 MarkupSafe==2.0.1
-opentracing==2.4.0
+opentracing==2.0.0
 prometheus-client==0.12.0
 redis==3.5.3
+redis-opentracing==1.0.0
 requests==2.26.0
 six==1.16.0
 threadloop==1.0.2
