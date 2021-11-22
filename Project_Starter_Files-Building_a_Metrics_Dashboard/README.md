@@ -12,6 +12,9 @@
 
 ## Describe SLO/SLI
 *TODO:* Describe, in your own words, what the SLIs are, based on an SLO of *monthly uptime* and *request response time*.
+99% of all HTTP statuses will be 20x in a given month (Uptime)
+99% of all requests will take less than 20ms in a given month (Latency)
+
 
 ## Creating SLI metrics.
 *TODO:* It is important to know why we want to measure certain metrics for our customer. Describe in detail 5 metrics to measure these SLIs. 
@@ -51,3 +54,105 @@ Description:
 
 ## Final Dashboard
 *TODO*: Create a Dashboard containing graphs that capture all the metrics of your KPIs and adequately representing your SLIs and SLOs. Include a screenshot of the dashboard here, and write a text description of what graphs are represented in the dashboard.  
+
+## References:
+https://github.com/opentracing/specification/blob/master/semantic_conventions.md
+```
+kubectl apply -n observability -f - <<EOF
+apiVersion: jaegertracing.io/v1
+kind: Jaeger
+metadata:
+  name: simplest
+EOF
+``` 
+per https://github.com/jaegertracing/jaeger-operator#getting-started
+`kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.0.3/deploy/static/provider/cloud/deploy.yaml`
+`kubectl port-forward -n observability  service/simplest-query --address 0.0.0.0 16686:16686`
+```
+kubectl apply -n observability -f - <<EOF
+apiVersion: jaegertracing.io/v1
+kind: Jaeger
+metadata:
+  name: hotrod
+EOF
+```
+`kubectl port-forward -n observability  seßkubectl port-forward -n observability  service/hotrod-query --address 0.0.0.0 16685:16685`
+```
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: hotrod
+  labels:
+    app: hotrod
+spec:
+  ports:
+    - port: 8080
+  selector:
+    app: hotrod
+    tier: frontend
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hotrod
+  labels:
+    app: hotrod
+spec:
+  selector:
+    matchLabels:
+      app: hotrod
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        app: hotrod
+        tier: frontend      
+    spec:
+      containers:
+      - image: jaegertracing/example-hotrod:latest
+        name: hotrod
+        env:
+        - name: JAEGER_AGENT_HOST
+          value: jaeger
+        - name: JAEGER_AGENT_PORT
+          value: '6831'
+        ports:
+        - containerPort: 8080
+          name: hotrod
+EOF
+```
+https://www.digitalocean.com/community/tutorials/how-to-implement-distributed-tracing-with-jaeger-on-kubernetes
+https://opentracing.io/guides/python/quickstart/
+sudo cat /etc/rancher/k3s/k3s.yaml
+had to `vagrant destroy` and `conda deactivate` at Exercise_Starter_Files/ first. 
+`curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash`
+`kubectl create namespace monitoring`
+`helm repo add prometheus-community https://prometheus-community.github.io/helm-charts`
+`helm repo add stable https://charts.helm.sh/stable`
+`helm repo update`
+`helm install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring --kubeconfig /etc/rancher/k3s/k3s.yaml`
+kubectl get pods,svc --namespace=monitoring
+kubectl port-forward service/prometheus-grafana --address 0.0.0.0 3000:80 -n monitoring
+password: prom-operator
+install jaeger per: https://www.jaegertracing.io/docs/1.28/operator/ :
+```
+kubectl create namespace observability # <1>
+kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/crds/jaegertracing.io_jaegers_crd.yaml 
+`kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/cluster_role.yaml`
+`kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/cluster_role_binding.yaml`
+`kubectl get deployment jaeger-operator -n observability`
+kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/service_account.yaml
+kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/role.yaml
+kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/role_binding.yaml
+kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/operator.yaml
+
+```
+kubectl get deployments jaeger-operator -n observability
+kubectl get pods,svc -n observability
+
+"Shift Command 5" to capture: Photo to view, then: export .png to project folder
+
+`kubectl --namespace monitoring port-forward svc/prometheus-grafana --address 0.0.0.0 5000:80`
+
