@@ -124,9 +124,9 @@ EOF
 ```
 https://www.digitalocean.com/community/tutorials/how-to-implement-distributed-tracing-with-jaeger-on-kubernetes
 https://opentracing.io/guides/python/quickstart/
-sudo cat /etc/rancher/k3s/k3s.yaml
+`sudo cat /etc/rancher/k3s/k3s.yaml`; in vi: gg, dG: paste
 had to `vagrant destroy` and `conda deactivate` at Exercise_Starter_Files/ first; had to `vagrant destroy` at parent folder `Project_Starter_Files-Building_a_Metrics_Dashboard` first.
-`curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash`
+curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 `kubectl create namespace monitoring`
 `helm repo add prometheus-community https://prometheus-community.github.io/helm-charts`
 `helm repo add stable https://charts.helm.sh/stable`
@@ -139,10 +139,10 @@ kubectl get pods,svc --namespace=monitoring
 password: prom-operator
 install jaeger per: https://www.jaegertracing.io/docs/1.28/operator/ :
 ```
-kubectl create namespace observability # <1>
+kubectl create namespace observability 
 kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/crds/jaegertracing.io_jaegers_crd.yaml 
-`kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/cluster_role.yaml`
-`kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/cluster_role_binding.yaml`
+kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/cluster_role.yaml
+kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/cluster_role_binding.yaml`
 `kubectl get deployment jaeger-operator -n observability`
 kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/service_account.yaml
 kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/role.yaml
@@ -157,6 +157,7 @@ kubectl get pods,svc -n observability
 "Shift Command 5" to capture: Photo to view, then: export .png to project folder
 
 `kubectl --namespace monitoring port-forward svc/prometheus-grafana --address 0.0.0.0 5000:80` # Forwarding from 0.0.0.0:5000 -> 3000
+or ` manifests % kubectl port-forward -n monitoring prometheus-grafana-5cddc775c4-97rxl 5001:80`
 `manifests % kubectl apply -f jaeger.yaml -n observability`
 `manifests % kubectl get svc -n observability` # see svc/my-trace-query and another 3 my-trace-* services
 `my-trace-query.default.svc.cluster.local:16686` as data source: # Jaeger: Bad Gateway. 502. Bad Gateway
@@ -176,3 +177,11 @@ jaeger strategy: https://access.redhat.com/documentation/en-us/openshift_contain
 or: https://stackoverflow.com/questions/33509194/command-to-delete-all-pods-in-all-kubernetes-namespaces
 `manifests % kubectl apply -f app/ -n default`
 `(base) mommy@Mommys-iMac ~ % kubectl get ingress -n observability`
+## Debug
+Error on `vagrant up`: "...because the filesystem "vboxsf" is not available. This filesystem is..": 
+At where Vagrantfile is : `vagrant plugin install vagrant-vbguest` per https://stackoverflow.com/questions/43492322/vagrant-was-unable-to-mount-virtualbox-shared-folders
+data source for jaeger at Grafana: either `localhost:16686` or `my-trace-query.observability.svc.cluster.local:16686`
+https://stackoverflow.com/questions/64445937/prometheus-monitor-all-services-without-creating-servicemonitor-for-each-servic
+(udaconnect_env) c manifests % kubectl port-forward   service/backend-service --address 0.0.0.0 8083:8081 # backend-service 200
+5001: grafana
+16686: jaeger

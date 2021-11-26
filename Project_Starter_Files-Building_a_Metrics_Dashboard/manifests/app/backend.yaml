@@ -4,8 +4,11 @@ metadata:
   name: backend-app
   annotations:
     "sidecar.jaegertracing.io/inject": "true"
+    "prometheus.io/scrape": "true"
+    "prometheus.io/path": "/data/metrics"
+    "prometheus.io/port": "80"
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: backend
@@ -18,15 +21,17 @@ spec:
       - name: backend
         image: ghcr.io/thejaysmith/backend:v1
         ports:
-        - containerPort: 8088
+        - containerPort: 8081
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: backend-service
+  labels:
+    monitoring: "true"
 spec:
   selector:
     app: backend
   ports:
-    - port: 8088
-      targetPort: 8088
+    - port: 8081
+      targetPort: 8080
