@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-star-app
+  labels:
+    name: backend-star-app
+  annotations:
+    "sidecar.jaegertracing.io/inject": "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend-star-app
+  template:
+    metadata:
+      labels:
+        app: backend-star-app
+    spec:
+      containers:
+        - name: backend-star-app
+          image: treefishdocker/star-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - name: backend-port
+              containerPort: 8000
+              protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: backend
+spec:
+    selector:
+        app: backend-star-app
+    ports:
+        - protocol: TCP
+          port: 8000
+          targetPort: 8000
