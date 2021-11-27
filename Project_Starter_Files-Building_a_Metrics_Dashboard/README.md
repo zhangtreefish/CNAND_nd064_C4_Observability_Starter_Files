@@ -12,14 +12,25 @@
 
 ## Describe SLO/SLI
 *TODO4:* Describe, in your own words, what the SLIs are, based on an SLO of *monthly uptime* and *request response time*.
-If the SLO is "99% of all HTTP statuses will be 20x in a given month (Uptime)", then the SLI could be the measurement of Number of 20X HTTP requests / total HTTP requests (i.e.success rate)
-If the SLO is "99% of all requests will take less than 20ms in a given month (Latency)", then SLI would be measured by Number of requested lasting less than 20ms / total requests.
+so that we can alert when the ratio goes below 99%, or as the 95th percentile, i.e. the request duration within which 95% of all requests fall, i.e.:
+`histogram_quantile(0.95, sum(rate(prometheus_http_request_duration_seconds_bucket[5m])) by (le))`
+### error: `http_requests_total{status!~"20."}/http_requests_total` or
+`sum(prometheus_http_requests_total{code=~"2.*|3.*", job="xxx"})/sum(prometheus_http_requests_total{job="xxx"})`
 
-## Creating SLI metrics.
-*TODO5:* It is important to know why we want to measure certain metrics for our customer. Describe in detail 5 metrics to measure these SLIs. 
+### saturation: //unused memory in MiB for every instance (on a fictional cluster scheduler exposing these metrics about the instances it runs):
+`(instance_memory_limit_bytes - instance_memory_usage_bytes) / 1024 / 1024` 
+//the top 3 CPU users grouped by application (app) and process type (proc) like this:
+`topk(3, sum by (app, proc) (rate(instance_cpu_time_ns[5m])))`
+### availability for 99.5% availability:
+`sum(prometheus_http_requests_total{code=~"2.*|3.*|4..", job="xxx"})/sum(prometheus_http_requests_total{job="xxx"})`
+
+
 
 ## Create a Dashboard to measure our SLIs
 *TODO6:* Create a dashboard to measure the uptime of the frontend and backend services We will also want to measure to measure 40x and 50x errors. Create a dashboard that show these values over a 24 hour period and take a screenshot.
+http_requests_total{status!~"20."}
+http_requests_total{status~"40."}
+http_requests_total{status~"50."}
 
 ## Tracing our Flask App
 *TODO7:*  We will create a Jaeger span to measure the processes on the backend. Once you fill in the span, provide a screenshot of it here.
@@ -30,7 +41,6 @@ If the SLO is "99% of all requests will take less than 20ms in a given month (La
 ## Report Error
 *TODO9:* Using the template below, write a trouble ticket for the developers, to explain the errors that you are seeing (400, 500, latency) and to let them know the file that is causing the issue.
 
-TROUBLE TICKET
 
 Name:
 
