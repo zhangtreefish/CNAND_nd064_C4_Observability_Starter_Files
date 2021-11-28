@@ -3,11 +3,12 @@ kind: Deployment
 metadata:
   name: frontend-app
   annotations:
-    sidecar.jaegertracing.io/inject: 'true'
     prometheus.io/scrape: 'true'
     prometheus.io/path: '/metrics'
     prometheus.io/port: frontend-port
   labels:
+    release: prometheus
+    app: frontend
 spec:
   replicas: 1
   selector:
@@ -20,10 +21,10 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: ghcr.io/thejaysmith/myfrontend:v1
+        image: treefishdocker/frontend:v1
         ports:
         - name: frontend-port
-          containerPort: '8082'
+          containerPort: 8080
           protocol: TCP
 ---
 apiVersion: v1
@@ -32,13 +33,15 @@ metadata:
   name: frontend-service
   labels:
     monitoring: 'true'
+    release: prometheus
+    app: frontend
 spec:
   selector:
     app: frontend
   ports:
-    - port: 8082
+    - name: frontend
+      port: 8082
       targetPort: frontend-port
-      name: frontend
       protocol: TCP
   type: LoadBalancer
 ---
@@ -60,4 +63,4 @@ spec:
     - default # in this projects all my apps are deployed here
   selector:
     matchLabels:
-      monitoring: 'true'  # <- matching whatever chosen as common
+      app: frontend # monitoring: 'true'  # <- matching whatever chosen to be monitored

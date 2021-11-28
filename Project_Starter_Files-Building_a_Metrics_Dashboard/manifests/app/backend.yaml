@@ -3,11 +3,14 @@ kind: Deployment
 metadata:
   name: backend
   annotations:
-    sidecar.jaegertracing.io/inject: "true"
-    prometheus.io/scrape: "true"
-    prometheus.io/path: "/metrics"
+    sidecar.jaegertracing.io/inject: 'true'
+    prometheus.io/scrape: 'true'
+    prometheus.io/path: '/metrics'
     prometheus.io/port: backend-port
   labels:
+    monitoring: 'true'
+    release: prometheus # prob not needed
+    app: backend
 spec:
   replicas: 1
   selector:
@@ -20,7 +23,10 @@ spec:
     spec:
       containers:
       - name: backend
-        image: treefishdocker/backend:latest
+        env:
+        - name: JAEGER_HOST
+          value: my-trace-agent.observability.svc.cluster.local
+        image: treefishdocker/backend:v3
         imagePullPolicy: Always
         ports:
         - name: backend-port
@@ -32,7 +38,9 @@ kind: Service
 metadata:
   name: backend
   labels:
-    monitoring: "true"
+    monitoring: 'true'
+    release: prometheus # prob not needed
+    app: backend # needed to match the selector in servicemonitor
 spec:  
   selector:
     app: backend
@@ -46,7 +54,7 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: common-monitor
+  name: backend-monitor
   namespace: monitoring
   labels:
     release: prometheus
@@ -62,5 +70,5 @@ spec:
     - default # in this projects all my apps are deployed here
   selector:
     matchLabels:
-      monitoring: "true"  # <- matching whatever chosen as common
+      app: backend # monitoring: 'true' # <- matching whatever chosen to be monitored
 

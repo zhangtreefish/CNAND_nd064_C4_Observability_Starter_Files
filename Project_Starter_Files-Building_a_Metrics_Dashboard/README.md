@@ -12,22 +12,26 @@
 
 ## Describe SLO/SLI
 *TODO4:* Describe, in your own words, what the SLIs are, based on an SLO of *monthly uptime* and *request response time*.
-so that we can alert when the ratio goes below 99%, or as the 95th percentile, i.e. the request duration within which 95% of all requests fall, i.e.:
-`histogram_quantile(0.95, sum(rate(prometheus_http_request_duration_seconds_bucket[5m])) by (le))`
-### error: `http_requests_total{status!~"20."}/http_requests_total` or
-`sum(prometheus_http_requests_total{code=~"2.*|3.*", job="xxx"})/sum(prometheus_http_requests_total{job="xxx"})`
+If the SLO is "99% monthly Uptime", then the SLI could be the measurement of "proportion HTTP requests that return with 2XX and 3XX status". 
+If the SLO is "99% of all requests will take less than 20ms in a given month (Latency)", then an SLI can be expressed as the "percentage of requests successfully retrieving before 20ms over the past month".
 
-### saturation: //unused memory in MiB for every instance (on a fictional cluster scheduler exposing these metrics about the instances it runs):
+*TODO5:* It is important to know why we want to measure certain metrics for our customer. Describe in detail 5 metrics to measure these SLIs. 
+5.1 traffic: We want to know how often our customers are visiting our application. With that in mind, we can have an SLI of "per-second average requests over the last hour for the past 4 weeks"; the metric can be : `rate(http_requests_total[1h])[4w:10m]`
+5.2 latency: We want our customers to have reasonable response time on our applications. With that in mind, we can have an SLI of "average request duration during the last 5 minutes"; the metric can be: `rate(prometheus_http_request_duration_seconds_sum[5m])/rate(prometheus_http_request_duration_seconds_count[5m])`
+5.3  latency: If the SLO is "99% of all requests will take less than 20ms in a given month (Latency)", then an SLI can be expressed as the "percentage of requests successfully retrieving before 20ms over the past month"; metric can be: `sum(rate(prometheus_http_request_duration_seconds_bucket{le="0.02"}[5m])) by (job)/  sum(rate(prometheus_http_request_duration_seconds_count[5m])) by (job)`
+so that we can alert when the ratio goes below 99%, or 
+5.4 latency(continue from 5.3): given the same SLO as in 5.3, another SLI could be the 95th percentile, i.e. "the request duration within which 95% of all requests fall"; the metric could be:
+`histogram_quantile(0.95, sum(rate(prometheus_http_request_duration_seconds_bucket[5m])) by (le))`
+5.5 error: We want our application working most if not all of the time for our customers.  An SLI can be "percentage of non 2xx response status code"; the metric can be: `http_requests_total{status!~"20."}/http_requests_total` ; or "percentage of 2xx and 3xx response status code"; the metric: `sum(prometheus_http_requests_total{code=~"2.*|3.*", job="xxx"})/sum(prometheus_http_requests_total{job="xxx"})`
+
+5.6 saturation: //unused memory in MiB for every instance (on a fictional cluster scheduler exposing these metrics about the instances it runs):
 `(instance_memory_limit_bytes - instance_memory_usage_bytes) / 1024 / 1024` 
 //the top 3 CPU users grouped by application (app) and process type (proc) like this:
 `topk(3, sum by (app, proc) (rate(instance_cpu_time_ns[5m])))`
-### availability for 99.5% availability:
-`sum(prometheus_http_requests_total{code=~"2.*|3.*|4..", job="xxx"})/sum(prometheus_http_requests_total{job="xxx"})`
-
-
+5.7 availability: We want our app to be available to our customers most of the time. The SLI can "the app returns for 99.995% of the time"; metric: `sum(prometheus_http_requests_total{code=~"2.*|3.*|4..", job="xxx"})/sum(prometheus_http_requests_total{job="xxx"})`
 
 ## Create a Dashboard to measure our SLIs
-*TODO6:* Create a dashboard to measure the uptime of the frontend and backend services We will also want to measure to measure 40x and 50x errors. Create a dashboard that show these values over a 24 hour period and take a screenshot.
+*TODO6:* Create a dashboard to measure the uptime of the frontend and backend services. We will also want to measure to measure 40x and 50x errors. Create a dashboard that show these values over a 24 hour period and take a screenshot.
 http_requests_total{status!~"20."}
 http_requests_total{status~"40."}
 http_requests_total{status~"50."}
@@ -205,4 +209,27 @@ https://rancher.com/docs/rancher/v2.5/en/monitoring-alerting/how-monitoring-work
 https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#servicemonitor
 targetPort: Name or number of the target port of the Pod behind the Service, the port must be specified with container port property. Mutually exclusive with port.	
 Finally, request received to the service’s port, and forwarded on the targetPort of the pod.
+#### to delete pods by parts of name
+ kubectl get pods -n default --no-headers=true | awk '/frontend|backend/{print $1}'| xargs  kubectl delete -n default pod --grace-period=0 --forceper https://stackoverflow.com/questions/59473707/kubenetes-pod-delete-with-pattern-match-or-wilcard
+   
+kubectl get prometheus -o yaml -n monitoring 
+# with         release: prometheus prometheus grabs service monitors; with monitoring: true sm gets svcs. 
 
+click at 8082 : net::ERR_NAME_NOT_RESOLVED; err backend.default.svc.cluster.local: https://knowledge.udacity.com/questions/741234
+kubectl get -n observability ingress -o yaml | tail #       servicePort: 16686
+per https://blog.mphomphego.co.za/blog/2021/07/25/How-to-configure-Jaeger-Data-source-on-Grafana-and-debug-network-issues-with-Bind-utilities.html
+ingress_name=$(
+  kubectl get -n observablity ingress -o jsonpath='{.items[0].metadata.name}'
+  )
+  ; \
+ingress_port=$(
+  kubectl get -n observability ingress -o jsonpath='{.items[0].spec.defaultBackend.service.port.number}'
+  )
+  ; \
+echo -e "\n\n${ingress_name}.${namespace}.svc.cluster.local:${ingress_port}"
+kubectl -n observability get pod jaeger-operator-7bb8f65994-6zj22 -oyaml | grep -A 4 WATCH_NAMESPACE
+https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/
+https://www.jaegertracing.io/docs/1.28/operator/: "download and customize the operator.yaml, setting the env var WATCH_NAMESPACE to have an empty value, so that it can watch for instances across all namespaces" to `        - start
+        env:
+        - name: WATCH_NAMESPACE
+          value: ""`

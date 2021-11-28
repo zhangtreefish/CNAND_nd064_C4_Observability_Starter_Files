@@ -3,7 +3,13 @@ kind: Deployment
 metadata:
   name: trial-app
   annotations:
-    "sidecar.jaegertracing.io/inject": "true"
+    sidecar.jaegertracing.io/inject: 'true'
+    prometheus.io/scrape: 'true'
+    prometheus.io/path: '/metrics'
+    prometheus.io/port: trial-port
+  labels:
+    release: prometheus
+    app: trial
 spec:
   replicas: 1
   selector:
@@ -18,15 +24,42 @@ spec:
       - name: trial
         image: ghcr.io/thejaysmith/trial:v1
         ports:
-        - containerPort: 9090
+        - containerPort: 8080
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: trial-service
+  name: trial
+  labels:
+    release: prometheus
+    app: trial
+    monitoring: 'true'
 spec:
   selector:
     app: trial
   ports:
-    - port: 9090
-      targetPort: 9090
+    - name: trial
+      port: 8082
+      targetPort: trial-port
+      protocol: TCP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: trial-monitor
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  endpoints:
+  - port: trial
+    interval: 30s
+    path: /metrics
+  jobLabel: monitoringtrial
+  namespaceSelector:
+    matchNames:
+    - default # in this projects all my apps are deployed here
+  selector:
+    matchLabels:
+      app: trial # monitoring: 'true'  # <- matching whatever service chosen to be monitored
+
