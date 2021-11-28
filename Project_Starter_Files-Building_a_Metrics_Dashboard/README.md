@@ -201,3 +201,8 @@ kubectl describe servicemonitor prometheus-kube-prometheus-coredns -n monitoring
 (backend_env)  manifests % kubectl edit servicemonitor common-monitor -n monitoring
 https://support.coreos.com/hc/en-us/articles/360000155514-Prometheus-ServiceMonitor-troubleshooting
 https://stackoverflow.com/questions/52991038/how-to-create-a-servicemonitor-for-prometheus-operator
+https://rancher.com/docs/rancher/v2.5/en/monitoring-alerting/how-monitoring-works/
+https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#servicemonitor
+targetPort: Name or number of the target port of the Pod behind the Service, the port must be specified with container port property. Mutually exclusive with port.	
+Finally, request received to the service’s port, and forwarded on the targetPort of the pod.
+

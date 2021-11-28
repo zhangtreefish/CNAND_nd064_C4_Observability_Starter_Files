@@ -4,6 +4,10 @@ metadata:
   name: backend
   annotations:
     sidecar.jaegertracing.io/inject: "true"
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/metrics"
+    prometheus.io/port: backend-port
+  labels:
 spec:
   replicas: 1
   selector:
@@ -33,7 +37,7 @@ spec:
   selector:
     app: backend
   ports:
-    - name: backend-port
+    - name: backend
       port: 8081
       targetPort: backend-port
       protocol: TCP
@@ -44,19 +48,15 @@ kind: ServiceMonitor
 metadata:
   name: common-monitor
   namespace: monitoring
-  annotations: 
-    sidecar.jaegertracing.io/inject: "true"
-    prometheus.io/scrape: "true"
-    prometheus.io/path: /metrics
-    prometheus.io/port: backend-port
   labels:
     release: prometheus
 spec:
   endpoints:
-  - port: backend-port # metrics originally
+  - port: backend # name of the service port
+    targetPort: backend-port # name of number of target port of thepod
     interval: 30s
     path: /metrics
-  jobLabel: monitoring
+  jobLabel: monitoringBackend
   namespaceSelector:
     matchNames:
     - default # in this projects all my apps are deployed here
