@@ -1,12 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend-app
+  name: backend
   annotations:
-    "sidecar.jaegertracing.io/inject": "true"
-    "prometheus.io/scrape": "true"
-    "prometheus.io/path": "/data/metrics"
-    "prometheus.io/port": "80"
+    sidecar.jaegertracing.io/inject: "true"
 spec:
   replicas: 1
   selector:
@@ -19,19 +16,51 @@ spec:
     spec:
       containers:
       - name: backend
-        image: ghcr.io/thejaysmith/backend:v1
+        image: treefishdocker/backend:latest
+        imagePullPolicy: Always
         ports:
-        - containerPort: 8081
+        - name: backend-port
+          containerPort: 8080
+          protocol: TCP
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend-service
+  name: backend
   labels:
     monitoring: "true"
-spec:
+spec:  
   selector:
     app: backend
   ports:
-    - port: 8081
-      targetPort: 8080
+    - name: backend-port
+      port: 8081
+      targetPort: backend-port
+      protocol: TCP
+  type: LoadBalancer
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: common-monitor
+  namespace: monitoring
+  annotations: 
+    sidecar.jaegertracing.io/inject: "true"
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /metrics
+    prometheus.io/port: backend-port
+  labels:
+    release: prometheus
+spec:
+  endpoints:
+  - port: backend-port # metrics originally
+    interval: 30s
+    path: /metrics
+  jobLabel: monitoring
+  namespaceSelector:
+    matchNames:
+    - default # in this projects all my apps are deployed here
+  selector:
+    matchLabels:
+      monitoring: "true"  # <- matching whatever chosen as common
+

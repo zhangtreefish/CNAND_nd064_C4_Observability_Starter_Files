@@ -18,15 +18,47 @@ spec:
       - name: frontend
         image: ghcr.io/thejaysmith/myfrontend:v1
         ports:
-        - containerPort: 8080
+        - name: frontend-port
+          containerPort: 8082
+          protocol: TCP
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: frontend-service
+  labels:
+    monitoring: "true"
 spec:
   selector:
     app: frontend
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 8082
+      targetPort: frontend-port
+      name: frontend-port
+      protocol: TCP
+  type: LoadBalancer
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: frontend-monitor
+  namespace: monitoring
+  annotations: 
+    sidecar.jaegertracing.io/inject: "true"
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /metrics
+    prometheus.io/port: frontend-port
+  labels:
+    release: prometheus
+spec:
+  endpoints:
+  - port: frontend-port # metrics originally
+    interval: 30s
+    path: /metrics
+  jobLabel: monitoringfrontend
+  namespaceSelector:
+    matchNames:
+    - default # in this projects all my apps are deployed here
+  selector:
+    matchLabels:
+      monitoring: "true"  # <- matching whatever chosen as common

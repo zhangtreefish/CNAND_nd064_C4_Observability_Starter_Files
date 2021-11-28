@@ -3,14 +3,22 @@ kind: ServiceMonitor
 metadata:
   name: common-monitor
   namespace: monitoring
+  annotations: 
+    sidecar.jaegertracing.io/inject: "true"
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /metrics
+    prometheus.io/port: backend-port
+  labels:
+    release: prometheus
 spec:
   endpoints:
-  - port: metrics
+  - port: backend-port # metrics originally
     interval: 30s
     path: /metrics
   jobLabel: monitoring
   namespaceSelector:
-    any: true  # <- important
+    matchNames:
+    - default # in this projects all my apps are deployed here
   selector:
     matchLabels:
-      monitoring: "true"  # <- should match what you've chosen as common
+      monitoring: "true"  # <- matching whatever chosen as common

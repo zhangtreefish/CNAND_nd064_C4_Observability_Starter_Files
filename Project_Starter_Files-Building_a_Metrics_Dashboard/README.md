@@ -171,7 +171,8 @@ or ` manifests % kubectl port-forward -n monitoring prometheus-grafana-5cddc775c
 `manifests % kubectl apply -f jaeger.yaml -n observability`
 `manifests % kubectl get svc -n observability` # see svc/my-trace-query and another 3 my-trace-* services
 `my-trace-query.default.svc.cluster.local:16686` as data source: # Jaeger: Bad Gateway. 502. Bad Gateway
-`kubectl port-forward -n observability  service/my-trace-query --address 0.0.0.0 16686:16686` # localhost:16686 for jaeger
+ should be `my-trace-query.observability.svc.cluster.local:16686`
+ `kubectl port-forward -n observability  service/my-trace-query --address 0.0.0.0 16686:16686` # localhost:16686 for jaeger
 
 `(backend_env) <my-mac> backend % docker tag star-backend:latest treefishdocker/star-backend:latest`
 `(backend_env)  app % kubectl apply -f backend-deployment.yaml -n default`
@@ -195,3 +196,8 @@ https://stackoverflow.com/questions/64445937/prometheus-monitor-all-services-wit
 (udaconnect_env) c manifests % kubectl port-forward   service/backend-service --address 0.0.0.0 8083:8081 # backend-service 200
 5001: grafana
 16686: jaeger
+kubectl describe servicemonitor prometheus-kube-prometheus-coredns -n monitoring
+(backend_env)  backend % docker tag backend:latest treefishdocker/backend.latest
+(backend_env)  manifests % kubectl edit servicemonitor common-monitor -n monitoring
+https://support.coreos.com/hc/en-us/articles/360000155514-Prometheus-ServiceMonitor-troubleshooting
+https://stackoverflow.com/questions/52991038/how-to-create-a-servicemonitor-for-prometheus-operator
