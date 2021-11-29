@@ -233,3 +233,8 @@ https://www.jaegertracing.io/docs/1.28/operator/: "download and customize the op
         env:
         - name: WATCH_NAMESPACE
           value: ""`
+          (udaconnect_env)  CNAND_nd064_C4_Observability_Starter_Files % kubectl edit deploy jaeger-operator -n observability
+Project_Starter_Files-Building_a_Metrics_Dashboard % kubectl port-forward service/prometheus-grafana --address 0.0.0.0 5000:80 -n monitoring
+          (udaconnect_env)  CNAND_nd064_C4_Observability_Starter_Files %  kubectl port-forward -n observability  service/my-trace-query --address 0.0.0.0 16686:16686
+          (udaconnect_env) CNAND_nd064_C4_Observability_Starter_Files % kubectl port-forward  service/frontend-service 8082                  
+          (udaconnect_env)  Project_Starter_Files-Building_a_Metrics_Dashboard % kubectl apply -f manifests/jaeger-role-binding-for-default.yaml
