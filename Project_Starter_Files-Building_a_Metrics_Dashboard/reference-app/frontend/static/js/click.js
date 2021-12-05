@@ -3,9 +3,9 @@ $(document).ready(function () {
     // all custom jQuery will go here
     $("#firstbutton").click(function () {
         $.ajax({
-            url: "http://backend.default.svc.cluster.local", success: function (result) {
+            url: "localhost:31672", success: function (result) {
                 $("#firstbutton").toggleClass("btn-primary:focus");
-                }
+            }
         });
     });
     $("#secondbutton").click(function () {
@@ -14,5 +14,5 @@ $(document).ready(function () {
                 $("#secondbutton").toggleClass("btn-primary:focus");
             }
         });
-    });    
+    });
 });

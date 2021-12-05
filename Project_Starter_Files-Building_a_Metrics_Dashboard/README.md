@@ -138,30 +138,39 @@ EOF
 ```
 https://www.digitalocean.com/community/tutorials/how-to-implement-distributed-tracing-with-jaeger-on-kubernetes
 https://opentracing.io/guides/python/quickstart/
-`sudo cat /etc/rancher/k3s/k3s.yaml`; in vi: gg, dG: paste
-had to `vagrant destroy` and `conda deactivate` at Exercise_Starter_Files/ first; had to `vagrant destroy` at parent folder `Project_Starter_Files-Building_a_Metrics_Dashboard` first.
-curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+`sudo cat /etc/rancher/k3s/k3s.yaml`; in vi: gg, d then G: paste
+[had to `vagrant destroy` and `conda deactivate` at Exercise_Starter_Files/ first; had to `vagrant destroy` at parent folder `Project_Starter_Files-Building_a_Metrics_Dashboard` first.]
+% kubectl get node -o wide
+kubectl describe node localhost
+kubect exec -it metrics-server-7b4f8b595-jjxzv -n kube-system -- bash //error "container_linux.go:370:"
+curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash //helm installed into /usr/local/bin/helm
 `kubectl create namespace monitoring`
-`helm repo add prometheus-community https://prometheus-community.github.io/helm-charts`
-`helm repo add stable https://charts.helm.sh/stable`
-`helm repo update`
-`helm install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring --kubeconfig /etc/rancher/k3s/k3s.yaml`
+`helm repo add prometheus-community https://prometheus-community.github.io/helm-charts` //"prometheus-community" has been added to your repositories
+`helm repo add stable https://charts.helm.sh/stable` //"stable" has been added to your repositories
+`helm repo update` //Update Complete. ⎈Happy Helming!⎈
+`helm install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring --kubeconfig /etc/rancher/k3s/k3s.yaml`//no such file or directory
+`helm install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring --kubeconfig ~/.kube/config`//kube-prometheus-stack has been installed. Check its status by running:
+//  kubectl --namespace monitoring get pods -l "release=prometheus"
+//Visit https://github.com/prometheus-operator/kube-prometheus for instructions on how to create & configure Alertmanager and Prometheus instances using the Operator.
 kubectl get pods,svc --namespace=monitoring
+% kubectl get pods,svc -n monitoring //see TODO1
 `kubectl port-forward service/prometheus-grafana --address 0.0.0.0 3000:80 -n monitoring` # address already in use, so had to:
-`kubectl port-forward service/prometheus-grafana --address 0.0.0.0 5000:80 -n monitoring` # Forwarding from 0.0.0.0:5000 -> 3000
+`kubectl port-forward service/prometheus-grafana --address 0.0.0.0 5000:80 -n monitoring` 
+# Forwarding from 0.0.0.0:5000 -> 3000
 
 password: prom-operator
 install jaeger per: https://www.jaegertracing.io/docs/1.28/operator/ :
 ```
 kubectl create namespace observability 
 kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/crds/jaegertracing.io_jaegers_crd.yaml 
-kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/cluster_role.yaml
-kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/cluster_role_binding.yaml`
 `kubectl get deployment jaeger-operator -n observability`
 kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/service_account.yaml
 kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/role.yaml
 kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/role_binding.yaml
 kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/operator.yaml
+
+kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/cluster_role.yaml
+kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/cluster_role_binding.yaml
 
 ```
 `kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/master/deploy/role.yaml`
@@ -170,8 +179,7 @@ kubectl get pods,svc -n observability
 
 "Shift Command 5" to capture: Photo to view, then: export .png to project folder
 
-`kubectl --namespace monitoring port-forward svc/prometheus-grafana --address 0.0.0.0 5000:80` # Forwarding from 0.0.0.0:5000 -> 3000
-or ` manifests % kubectl port-forward -n monitoring prometheus-grafana-5cddc775c4-97rxl 5001:80`
+`kubectl --namespace monitoring port-forward svc/prometheus-grafana --address 0.0.0.0 5000:80` #
 `manifests % kubectl apply -f jaeger.yaml -n observability`
 `manifests % kubectl get svc -n observability` # see svc/my-trace-query and another 3 my-trace-* services
 `my-trace-query.default.svc.cluster.local:16686` as data source: # Jaeger: Bad Gateway. 502. Bad Gateway
@@ -238,3 +246,24 @@ Project_Starter_Files-Building_a_Metrics_Dashboard % kubectl port-forward servic
           (udaconnect_env)  CNAND_nd064_C4_Observability_Starter_Files %  kubectl port-forward -n observability  service/my-trace-query --address 0.0.0.0 16686:16686
           (udaconnect_env) CNAND_nd064_C4_Observability_Starter_Files % kubectl port-forward  service/frontend-service 8082                  
           (udaconnect_env)  Project_Starter_Files-Building_a_Metrics_Dashboard % kubectl apply -f manifests/jaeger-role-binding-for-default.yaml
+
+          rate(flask_http_request_total[5m])? is 0?
+
+          kubectl delete all --all -n {my-namespace}
+          
+          
+          (udaconnect_env) mommy@Mommys-iMac manifests % kubectl get ns observability -o json > tmp.json
+          edit tmp.json so that: `"finalizers": []`
+                    `kubectl proxy`
+`curl -k -H "Content-Type: application/json" -X PUT --data-binary @tmp.json http://127.0.0.1:8001/api/v1/namespaces/developer/finalize <new tmp.json>`
+           kubectl port-forward  service/backend 8081 -n observability     
+          kubectl port-forward -n observability  service/my-trace-query --address 0.0.0.0 16686:16686
+          kubectl port-forward service/prometheus-grafana --address 0.0.0.0 5000:80 -n monitoring
+Tip#1: only one vagrant on your local machine
+Fix when seeing on "vagrant up": https://blog.mphomphego.co.za/blog/2021/01/14/A-VirtualBox-machine-with-the-name-already-exists/html
+`BAD_VM='master'`                                               
+`VM_ID=$(vboxmanage list vms | grep ${BAD_VM} | cut -f 2 -d ' ')`
+`vboxmanage unregistervm ${VM_ID} --delete`
+AND: `vagrant global-status` then `vagrant destroy`
+update vb version per:        
+Error: "mount: /vagrant: unknown filesystem type 'vboxsf'.": https://knowledge.udacity.com/questions/711201
