@@ -17,7 +17,7 @@ spec:
     path: /metrics
   jobLabel: monitoring
   namespaceSelector:
-    any: "true" # although in this projects all my apps are deployed in "default"
+    any: true # although in this projects all my apps are deployed in "default"
   selector:
     matchLabels:
       monitoring: "true"  # <- matching whatever chosen as common

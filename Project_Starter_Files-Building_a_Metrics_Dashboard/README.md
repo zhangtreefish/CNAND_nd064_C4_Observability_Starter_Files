@@ -180,7 +180,7 @@ kubectl get pods,svc -n observability
 "Shift Command 5" to capture: Photo to view, then: export .png to project folder
 
 `kubectl --namespace monitoring port-forward svc/prometheus-grafana --address 0.0.0.0 5000:80` #
-`manifests % kubectl apply -f jaeger.yaml -n observability`
+`% kubectl apply -f manifests/my-trace-jaeger-instance.yaml`
 `manifests % kubectl get svc -n observability` # see svc/my-trace-query and another 3 my-trace-* services
 `my-trace-query.default.svc.cluster.local:16686` as data source: # Jaeger: Bad Gateway. 502. Bad Gateway
  should be `my-trace-query.observability.svc.cluster.local:16686`
@@ -218,7 +218,8 @@ https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentati
 targetPort: Name or number of the target port of the Pod behind the Service, the port must be specified with container port property. Mutually exclusive with port.	
 Finally, request received to the service’s port, and forwarded on the targetPort of the pod.
 #### to delete pods by parts of name
- kubectl get pods -n default --no-headers=true | awk '/frontend|backend/{print $1}'| xargs  kubectl delete -n default pod --grace-period=0 --forceper https://stackoverflow.com/questions/59473707/kubenetes-pod-delete-with-pattern-match-or-wilcard
+ kubectl get pods -n default --no-headers=true | awk '/frontend|backend/{print $1}'| xargs  kubectl delete -n default pod --grace-period=0 --force
+ per https://stackoverflow.com/questions/59473707/kubenetes-pod-delete-with-pattern-match-or-wilcard
    
 kubectl get prometheus -o yaml -n monitoring 
 # with         release: prometheus prometheus grabs service monitors; with monitoring: true sm gets svcs. 
@@ -264,6 +265,7 @@ Fix when seeing on "vagrant up": https://blog.mphomphego.co.za/blog/2021/01/14/A
 `BAD_VM='master'`                                               
 `VM_ID=$(vboxmanage list vms | grep ${BAD_VM} | cut -f 2 -d ' ')`
 `vboxmanage unregistervm ${VM_ID} --delete`
-AND: `vagrant global-status` then `vagrant destroy`
+AND: `vagrant global-status --prune` then `vagrant destroy xxxx`
 update vb version per:        
 Error: "mount: /vagrant: unknown filesystem type 'vboxsf'.": https://knowledge.udacity.com/questions/711201
+Error: error: Pod 'backend-68bd676ccd-trxj4' does not have a named port 'backendport' //this is a terminating pod?!

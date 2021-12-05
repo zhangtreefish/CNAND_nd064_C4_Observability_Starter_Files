@@ -6,7 +6,7 @@ metadata:
     sidecar.jaegertracing.io/inject: 'true'
     prometheus.io/scrape: 'true'
     prometheus.io/path: '/metrics'
-    prometheus.io/port: trial-port
+    prometheus.io/port: trialport
   labels:
     release: prometheus
     app: trial
@@ -24,7 +24,9 @@ spec:
       - name: trial
         image: ghcr.io/thejaysmith/trial:v1
         ports:
-        - containerPort: 8080
+        - name: trialport
+          containerPort: 8080
+          protocol: TCP
 ---
 apiVersion: v1
 kind: Service
@@ -40,8 +42,9 @@ spec:
   ports:
     - name: trial
       port: 8082
-      targetPort: trial-port
+      targetPort: trialport
       protocol: TCP
+  type: NodePort
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor

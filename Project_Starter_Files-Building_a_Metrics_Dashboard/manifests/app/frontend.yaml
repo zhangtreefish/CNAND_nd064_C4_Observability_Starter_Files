@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: treefishdocker/frontend:v1
+        image: treefishdocker/frontend:latest
         ports:
         - name: frontend-port
           containerPort: 8080
@@ -40,7 +40,7 @@ spec:
     app: frontend
   ports:
     - name: frontend
-      port: 8082
+      port: 80
       targetPort: frontend-port
       protocol: TCP
   type: LoadBalancer

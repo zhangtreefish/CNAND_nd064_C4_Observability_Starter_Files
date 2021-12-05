@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, make_response
 
 import pymongo
 from flask_pymongo import PyMongo
@@ -10,11 +10,9 @@ from opentracing.ext import tags as ext_tags
 
 import requests
 import time
-from flask_cors import CORS, cross_origin
 
 app = Flask(__name__)
-CORS(app)  # Set CORS for development
-app.config['CORS_HEADERS'] = 'Content-Type'
+
 app.config['MONGO_DBNAME'] = 'example-mongodb'
 app.config['MONGO_URI'] = 'mongodb://example-mongodb-svc.default.svc.cluster.local:27017/example-mongodb'
 mongo = PyMongo(app)
@@ -36,7 +34,6 @@ jaeger_tracer = config.initialize_tracer()
 tracing = FlaskTracing(jaeger_tracer, True, app)
 
 @app.route('/')
-@cross_origin()
 def homepage():
     with jaeger_tracer.start_span('TestSpan') as span:
         span.log_kv({'event': 'welcome to the backend!', 'life': 42})
@@ -45,7 +42,6 @@ def homepage():
     return "Hello World"
 
 @app.route('/api')
-@cross_origin()
 def my_api():
     parent_span = tracing.get_span("api-span")
     with jaeger_tracer.start_span('TestSpan', child_of=parent_span) as span:
@@ -53,8 +49,8 @@ def my_api():
     answer = "something"
     return jsonify(repsonse=answer)
 
-# should return 500:
-@app.route('/pythonjobs')
+# return 500:
+@app.route('/pythonjobs', methods=['GET'])
 def python_jobs():
     gh_jobs = 'https://jobs.github.com/positions.json?description=python'
     parent_span = tracing.get_span("python jobs")
@@ -65,19 +61,35 @@ def python_jobs():
         span.set_tag("http.status_code", res.status_code)  # 404
 
 
-@app.route('/star', methods=['POST'])
-@cross_origin()
+@app.route('/star', methods=['POST', 'OPTIONS'])
 def add_star():
     with jaeger_tracer.start_span('star') as span:
-        star = mongo.db.stars
-        name = request.json['name']
-        distance = request.json['distance']
-        star_id = star.insert({'name': name, 'distance': distance})
-        new_star = star.find_one({'_id': star_id })
-        output = {'name': new_star['name'], 'distance': new_star['distance']}
-        span.set_tag('star', new_star['name'])
+        if request.method == "OPTIONS":  # CORS preflight
+            with jaeger_tracer.start_span('preflight-star-span', child_of=span) as span:
+                return _build_cors_preflight_response()
+        elif request.method == "POST":  # The actual request following the preflight
+            with jaeger_tracer.start_span('post-star-span', child_of=span) as span:
+                star = mongo.db.stars
+                name = request.get_json()['name']
+                distance = request.get_json()['distance']
+                star_id = star.insert_one({'name': name, 'distance': distance})
+                new_star = star.find_one({'_id': star_id })
+                output = {'name': new_star['name'], 'distance': new_star['distance']}
+                span.set_tag('star', new_star['name'])
+                return _corsify_actual_response(jsonify({'result': output}))
+        else:
+            raise RuntimeError("Error creating star {}?!".format(request.method))
 
-        return jsonify({'result': output})
+# The two methods below are from https://stackoverflow.com/questions/25594893/how-to-enable-cors-in-flask
+def _build_cors_preflight_response():
+    response = make_response()
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add("Access-Control-Allow-Headers", "*")
+    response.headers.add("Access-Control-Allow-Methods", "*")
+    return response
+def _corsify_actual_response(response):
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    return response
 
 if __name__ == "__main__":
     app.run()
