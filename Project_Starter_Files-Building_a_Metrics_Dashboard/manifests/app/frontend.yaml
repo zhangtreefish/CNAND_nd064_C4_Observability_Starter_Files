@@ -21,7 +21,8 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: treefishdocker/frontend:latest
+        image: treefishdocker/frontend:v5
+        imagePullPolicy: Always
         ports:
         - name: frontend-port
           containerPort: 8080
@@ -40,7 +41,7 @@ spec:
     app: frontend
   ports:
     - name: frontend
-      port: 80
+      port: 8080
       targetPort: frontend-port
       protocol: TCP
   type: LoadBalancer

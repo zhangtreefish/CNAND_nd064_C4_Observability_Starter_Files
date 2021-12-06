@@ -1,4 +1,4 @@
-**Note:** For the screenshots, you can store all of your answer images in the `answer-img` directory.
+**Note:** The screenshots are named with the TODO #s, and are in the `answer-img` directory.
 
 ## Verify the monitoring installation
 
@@ -32,9 +32,8 @@ so that we can alert when the ratio goes below 99%, or
 
 ## Create a Dashboard to measure our SLIs
 *TODO6:* Create a dashboard to measure the uptime of the frontend and backend services. We will also want to measure to measure 40x and 50x errors. Create a dashboard that show these values over a 24 hour period and take a screenshot.
-http_requests_total{status!~"20."}
-http_requests_total{status~"40."}
-http_requests_total{status~"50."}
+uptime: `sum(rate(flask_http_request_total{status=~"2.*|3.*", job="backend"}[24h]))/sum(rate(flask_http_request_total[24h]))`
+error rate:`sum(rate(flask_http_request_total{status=~"4.*|5.*", job="backend"}[24h]))/sum(rate(flask_http_request_total[24h]))`
 
 ## Tracing our Flask App
 *TODO7:*  We will create a Jaeger span to measure the processes on the backend. Once you fill in the span, provide a screenshot of it here.
@@ -44,105 +43,41 @@ http_requests_total{status~"50."}
 
 ## Report Error
 *TODO9:* Using the template below, write a trouble ticket for the developers, to explain the errors that you are seeing (400, 500, latency) and to let them know the file that is causing the issue.
+Name: My Name, email, phone
 
+Date: Dec5, 2021.
 
-Name:
+Subject: Error in "backend" project, on "GET /pythonjobs"
 
-Date:
+Affected Area: "backend" project, span "get-python-jobs"
 
-Subject:
+Severity: Critical(404)
 
-Affected Area:
-
-Severity:
-
-Description:
-
+Description: Dashboard link: see TODO9_backend_404.png in answer-img/.
 
 ## Creating SLIs and SLOs
 *TODO10:* We want to create an SLO guaranteeing that our application has a 99.95% uptime per month. Name three SLIs that you would use to measure the success of this SLO.
+`sum(rate(flask_http_request_total{status=~"2.*|3.*", job="backend"}[30d]))/sum(rate(flask_http_request_total[30d]))` > 99.95%
+`sum(rate(flask_http_request_total{status!~"4.*|5.*", job="backend"}[30d]))/sum(rate(flask_http_request_total[30d]))` < 0.05%
+`sum(rate(flask_http_request_exceptions_total[30d]))/sum(rate(flask_http_request_total[30d]))`
 
 ## Building KPIs for our plan
 *TODO11*: Now that we have our SLIs and SLOs, create KPIs to accurately measure these metrics. We will make a dashboard for this, but first write them down here.
-
+In TODO5: I have listed SLIs for the Four Golden Signals: Latency, Traffic, Errors, Saturation. 
 ## Final Dashboard
 *TODO12*: Create a Dashboard containing graphs that capture all the metrics of your KPIs and adequately representing your SLIs and SLOs. Include a screenshot of the dashboard here, and write a text description of what graphs are represented in the dashboard.  
+Saturation: `cluster:namespace:pod_cpu:active:kube_pod_container_resource_limits-cluster:namespace:pod_cpu:active:kube_pod_container_resource_requests`
+Error: `sum(rate(flask_http_request_total{status=~"4.*|5.*", job="backend"}[24h]))/sum(rate(flask_http_request_total[24h]))`
+Latency: `histogram_quantile(0.95, sum(rate(flask_http_request_duration_seconds_bucket[5m])) by (le))`
+Traffic: `flask_http_request_total`, usually as rate `rate(flask_http_request_total[24h])`
 
-## References:
-https://github.com/opentracing/specification/blob/master/semantic_conventions.md
-```
-kubectl apply -n observability -f - <<EOF
-apiVersion: jaegertracing.io/v1
-kind: Jaeger
-metadata:
-  name: simplest
-EOF
-``` 
-per https://github.com/jaegertracing/jaeger-operator#getting-started
-`kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.0.3/deploy/static/provider/cloud/deploy.yaml`
-`kubectl port-forward -n observability  service/simplest-query --address 0.0.0.0 16686:16686`
-```
-kubectl apply -n observability -f - <<EOF
-apiVersion: jaegertracing.io/v1
-kind: Jaeger
-metadata:
-  name: hotrod
-EOF
-```
-`kubectl port-forward -n observability  service/hotrod-query --address 0.0.0.0 16685:16685`
-```
-cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: Service
-metadata:
-  name: hotrod
-  labels:
-    app: hotrod
-spec:
-  ports:
-    - port: 8080
-  selector:
-    app: hotrod
-    tier: frontend
-  type: LoadBalancer
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: hotrod
-  labels:
-    app: hotrod
-spec:
-  selector:
-    matchLabels:
-      app: hotrod
-      tier: frontend
-  template:
-    metadata:
-      labels:
-        app: hotrod
-        tier: frontend      
-    spec:
-      containers:
-      - image: jaegertracing/example-hotrod:latest
-        name: hotrod
-        env:
-        - name: JAEGER_AGENT_HOST
-          value: jaeger
-        - name: JAEGER_AGENT_PORT
-          value: '6831'
-        ports:
-        - containerPort: 8080
-          name: hotrod
-EOF
-```
-https://www.digitalocean.com/community/tutorials/how-to-implement-distributed-tracing-with-jaeger-on-kubernetes
-https://opentracing.io/guides/python/quickstart/
-`sudo cat /etc/rancher/k3s/k3s.yaml`; in vi: gg, d then G: paste
-[had to `vagrant destroy` and `conda deactivate` at Exercise_Starter_Files/ first; had to `vagrant destroy` at parent folder `Project_Starter_Files-Building_a_Metrics_Dashboard` first.]
-% kubectl get node -o wide
-kubectl describe node localhost
-kubect exec -it metrics-server-7b4f8b595-jjxzv -n kube-system -- bash //error "container_linux.go:370:"
+## Steps to run:
+### set up vagrant and k3s:
+vagrant up
+vagrant ssh
+`sudo cat /etc/rancher/k3s/k3s.yaml`; in vi: gg, d then G: paste into below:
+vi ~/.kube/config
+### set up monitoring with Prometheus
 curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash //helm installed into /usr/local/bin/helm
 `kubectl create namespace monitoring`
 `helm repo add prometheus-community https://prometheus-community.github.io/helm-charts` //"prometheus-community" has been added to your repositories
@@ -153,38 +88,35 @@ curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bas
 //  kubectl --namespace monitoring get pods -l "release=prometheus"
 //Visit https://github.com/prometheus-operator/kube-prometheus for instructions on how to create & configure Alertmanager and Prometheus instances using the Operator.
 kubectl get pods,svc --namespace=monitoring
-% kubectl get pods,svc -n monitoring //see TODO1
-`kubectl port-forward service/prometheus-grafana --address 0.0.0.0 3000:80 -n monitoring` # address already in use, so had to:
+### set up tracing with Jaeger
+install jaeger per: https://www.jaegertracing.io/docs/1.28/operator/ 
+### start the applications to be monitored and traced
+kubectl apply -f manifests/app
 `kubectl port-forward service/prometheus-grafana --address 0.0.0.0 5000:80 -n monitoring` 
-# Forwarding from 0.0.0.0:5000 -> 3000
+`kubectl port-forward -n observability  service/my-trace-query --address 0.0.0.0 16686:16686` # localhost:16686 for jaeger
+`kubectl port-forward  service/frontend-service 8082`                  
 
+## Notes:
+https://github.com/opentracing/specification/blob/master/semantic_conventions.md
+`kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.0.3/deploy/static/provider/cloud/deploy.yaml`
+https://www.digitalocean.com/community/tutorials/how-to-implement-distributed-tracing-with-jaeger-on-kubernetes
+https://opentracing.io/guides/python/quickstart/
+[had to `vagrant destroy` and `conda deactivate` at Exercise_Starter_Files/ first; had to `vagrant destroy` at parent folder `Project_Starter_Files-Building_a_Metrics_Dashboard` first.]
+% kubectl get node -o wide
+kubectl describe node localhost
+kubect exec -it metrics-server-7b4f8b595-jjxzv -n kube-system -- bash //error "container_linux.go:370:"
+
+% kubectl get pods,svc -n monitoring //see TODO1
 password: prom-operator
-install jaeger per: https://www.jaegertracing.io/docs/1.28/operator/ :
-```
-kubectl create namespace observability 
-kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/crds/jaegertracing.io_jaegers_crd.yaml 
-`kubectl get deployment jaeger-operator -n observability`
-kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/service_account.yaml
-kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/role.yaml
-kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/role_binding.yaml
-kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/operator.yaml
-
-kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/cluster_role.yaml
-kubectl create -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/v1.28.0/deploy/cluster_role_binding.yaml
-
-```
-`kubectl create -n observability -f https://raw.githubusercontent.com/jaegertracing/jaeger-operator/master/deploy/role.yaml`
 kubectl get deployments jaeger-operator -n observability
 kubectl get pods,svc -n observability
 
 "Shift Command 5" to capture: Photo to view, then: export .png to project folder
 
-`kubectl --namespace monitoring port-forward svc/prometheus-grafana --address 0.0.0.0 5000:80` #
 `% kubectl apply -f manifests/my-trace-jaeger-instance.yaml`
 `manifests % kubectl get svc -n observability` # see svc/my-trace-query and another 3 my-trace-* services
 `my-trace-query.default.svc.cluster.local:16686` as data source: # Jaeger: Bad Gateway. 502. Bad Gateway
  should be `my-trace-query.observability.svc.cluster.local:16686`
- `kubectl port-forward -n observability  service/my-trace-query --address 0.0.0.0 16686:16686` # localhost:16686 for jaeger
 
 `(backend_env) <my-mac> backend % docker tag star-backend:latest treefishdocker/star-backend:latest`
 `(backend_env)  app % kubectl apply -f backend-deployment.yaml -n default`
@@ -222,7 +154,7 @@ Finally, request received to the service’s port, and forwarded on the targetPo
  per https://stackoverflow.com/questions/59473707/kubenetes-pod-delete-with-pattern-match-or-wilcard
    
 kubectl get prometheus -o yaml -n monitoring 
-# with         release: prometheus prometheus grabs service monitors; with monitoring: true sm gets svcs. 
+# with release: prometheus prometheus grabs service monitors; with monitoring: true sm gets svcs. 
 
 click at 8082 : net::ERR_NAME_NOT_RESOLVED; err backend.default.svc.cluster.local: https://knowledge.udacity.com/questions/741234
 kubectl get -n observability ingress -o yaml | tail #       servicePort: 16686
@@ -243,23 +175,14 @@ https://www.jaegertracing.io/docs/1.28/operator/: "download and customize the op
         - name: WATCH_NAMESPACE
           value: ""`
           (udaconnect_env)  CNAND_nd064_C4_Observability_Starter_Files % kubectl edit deploy jaeger-operator -n observability
-Project_Starter_Files-Building_a_Metrics_Dashboard % kubectl port-forward service/prometheus-grafana --address 0.0.0.0 5000:80 -n monitoring
-          (udaconnect_env)  CNAND_nd064_C4_Observability_Starter_Files %  kubectl port-forward -n observability  service/my-trace-query --address 0.0.0.0 16686:16686
-          (udaconnect_env) CNAND_nd064_C4_Observability_Starter_Files % kubectl port-forward  service/frontend-service 8082                  
           (udaconnect_env)  Project_Starter_Files-Building_a_Metrics_Dashboard % kubectl apply -f manifests/jaeger-role-binding-for-default.yaml
-
           rate(flask_http_request_total[5m])? is 0?
 
           kubectl delete all --all -n {my-namespace}
-          
-          
-          (udaconnect_env) mommy@Mommys-iMac manifests % kubectl get ns observability -o json > tmp.json
+          kubectl get ns observability -o json > tmp.json
           edit tmp.json so that: `"finalizers": []`
-                    `kubectl proxy`
+          `kubectl proxy`
 `curl -k -H "Content-Type: application/json" -X PUT --data-binary @tmp.json http://127.0.0.1:8001/api/v1/namespaces/developer/finalize <new tmp.json>`
-           kubectl port-forward  service/backend 8081 -n observability     
-          kubectl port-forward -n observability  service/my-trace-query --address 0.0.0.0 16686:16686
-          kubectl port-forward service/prometheus-grafana --address 0.0.0.0 5000:80 -n monitoring
 Tip#1: only one vagrant on your local machine
 Fix when seeing on "vagrant up": https://blog.mphomphego.co.za/blog/2021/01/14/A-VirtualBox-machine-with-the-name-already-exists/html
 `BAD_VM='master'`                                               
@@ -269,3 +192,7 @@ AND: `vagrant global-status --prune` then `vagrant destroy xxxx`
 update vb version per:        
 Error: "mount: /vagrant: unknown filesystem type 'vboxsf'.": https://knowledge.udacity.com/questions/711201
 Error: error: Pod 'backend-68bd676ccd-trxj4' does not have a named port 'backendport' //this is a terminating pod?!
+TODO#6: vagrant@localhost:~> curl localhost:31667/pythonjobs; curl localhost:31667
+curl -X POST -d @tmp.json http://localhost:31667/star --header "Content-Type:application/json"
+
+when vagrant is slow, vagrant halt; then up again.
