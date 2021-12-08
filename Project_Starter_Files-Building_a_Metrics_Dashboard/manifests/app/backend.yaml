@@ -64,7 +64,7 @@ spec:
     targetPort: backendport # name of number of target port of thepod
     interval: 30s
     path: /metrics
-  jobLabel: monitoringBackend
+  jobLabel: monitoringbackend
   namespaceSelector:
     matchNames:
     - default # in this projects all my business apps are deployed here

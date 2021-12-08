@@ -1,12 +1,13 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: frontend-app
+  name: frontend
   annotations:
     prometheus.io/scrape: 'true'
     prometheus.io/path: '/metrics'
-    prometheus.io/port: frontend-port
+    prometheus.io/port: frontendport
   labels:
+    monitoring: 'true'
     release: prometheus
     app: frontend
 spec:
@@ -24,14 +25,14 @@ spec:
         image: treefishdocker/frontend:v5
         imagePullPolicy: Always
         ports:
-        - name: frontend-port
+        - name: frontendport
           containerPort: 8080
           protocol: TCP
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: frontend-service
+  name: frontend
   labels:
     monitoring: 'true'
     release: prometheus
@@ -42,7 +43,7 @@ spec:
   ports:
     - name: frontend
       port: 8080
-      targetPort: frontend-port
+      targetPort: frontendport
       protocol: TCP
   type: LoadBalancer
 ---
@@ -56,6 +57,7 @@ metadata:
 spec:
   endpoints:
   - port: frontend
+    targetPort: frontendport
     interval: 30s
     path: /metrics
   jobLabel: monitoringfrontend
