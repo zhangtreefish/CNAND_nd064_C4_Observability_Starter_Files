@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: treefishdocker/frontend:v5
+        image: treefishdocker/frontend:v6.1
         imagePullPolicy: Always
         ports:
         - name: frontendport

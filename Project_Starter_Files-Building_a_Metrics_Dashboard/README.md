@@ -17,7 +17,7 @@ If the SLO is "99% of all requests will take less than 20ms in a given month (La
 
 *TODO5:* It is important to know why we want to measure certain metrics for our customer. Describe in detail 5 metrics to measure these SLIs. 
 5.1 traffic: We want to know how often our customers are visiting our application. With that in mind, we can have an SLI of "per-second average requests over the last hour for the past 4 weeks"; the metric can be : `rate(http_requests_total[1h])[4w:10m]`
-5.2 latency: We want our customers to have reasonable response time on our applications. With that in mind, we can have an SLI of "average request duration during the last 5 minutes"; the metric can be: `rate(prometheus_http_request_duration_seconds_sum[5m])/rate(prometheus_http_request_duration_seconds_count[5m])`
+5.2 latency: We want our customers to have reasonable response time on our applications. With that in mind, we can have an SLI of "average request duration during the last 5 minutes"; the metric can be: `rate(flask_http_request_duration_seconds_sum[30m])/rate(flask_http_request_duration_seconds_count[30m])`
 5.3  latency: If the SLO is "99% of all requests will take less than 20ms in a given month (Latency)", then an SLI can be expressed as the "percentage of requests successfully retrieving before 20ms over the past month"; metric can be: `sum(rate(prometheus_http_request_duration_seconds_bucket{le="0.02"}[5m])) by (job)/  sum(rate(prometheus_http_request_duration_seconds_count[5m])) by (job)`
 so that we can alert when the ratio goes below 99%, or 
 5.4 latency(continue from 5.3): given the same SLO as in 5.3, another SLI could be the 95th percentile, i.e. "the request duration within which 95% of all requests fall"; the metric could be:
@@ -28,12 +28,12 @@ so that we can alert when the ratio goes below 99%, or
 `(instance_memory_limit_bytes - instance_memory_usage_bytes) / 1024 / 1024` 
 //the top 3 CPU users grouped by application (app) and process type (proc) like this:
 `topk(3, sum by (app, proc) (rate(instance_cpu_time_ns[5m])))`
-5.7 availability: We want our app to be available to our customers most of the time. The SLI can "the app returns for 99.995% of the time"; metric: `sum(prometheus_http_requests_total{code=~"2.*|3.*|4..", job="xxx"})/sum(prometheus_http_requests_total{job="xxx"})`
+5.7 availability: We want our app to be available to our customers most of the time. The SLI can "the app returns for 99.995% of the time"; metric: `sum(rate(flask_http_request_total{status!~"4.*|5.*", job="backend"}[24h]))/sum(rate(flask_http_request_total{job="backend"}[24h]))` for backend or `sum(rate(flask_http_request_total{status!~"4.*|5.*", job="frontend"}[24h]))/sum(rate(flask_http_request_total{job="frontend"}[24h]))` for frontend
 
 ## Create a Dashboard to measure our SLIs
 *TODO6:* Create a dashboard to measure the uptime of the frontend and backend services. We will also want to measure to measure 40x and 50x errors. Create a dashboard that show these values over a 24 hour period and take a screenshot.
-uptime: `sum(rate(flask_http_request_total{status=~"2.*|3.*", job="backend"}[24h]))/sum(rate(flask_http_request_total[24h]))`
-error rate:`sum(rate(flask_http_request_total{status=~"4.*|5.*", job="backend"}[24h]))/sum(rate(flask_http_request_total[24h]))`
+uptime: `sum(rate(flask_http_request_total{status=~"2.*|3.*", job="backend"}[24h]))/sum(rate(flask_http_request_total{job="backend"}[24h]))`
+error rate:`sum(rate(flask_http_request_total{status=~"4.*|5.*", job="backend"}[24h]))/sum(rate(flask_http_request_total{job="backend"}[24h]))`
 
 ## Tracing our Flask App
 *TODO7:*  We will create a Jaeger span to measure the processes on the backend. Once you fill in the span, provide a screenshot of it here.
@@ -57,27 +57,36 @@ Description: Dashboard link: see TODO9_backend_404.png in answer-img/.
 
 ## Creating SLIs and SLOs
 *TODO10:* We want to create an SLO guaranteeing that our application has a 99.95% uptime per month. Name three SLIs that you would use to measure the success of this SLO.
-`sum(rate(flask_http_request_total{status=~"2.*|3.*", job="backend"}[30d]))/sum(rate(flask_http_request_total[30d]))` > 99.95%
+`sum(rate(flask_http_request_total{status=~"2.*|3.*", job="backend"}[30d]))/sum(rate(flask_http_request_total{job="backend"}[30d]))` > 99.95%
 `sum(rate(flask_http_request_total{status!~"4.*|5.*", job="backend"}[30d]))/sum(rate(flask_http_request_total[30d]))` < 0.05%
-`sum(rate(flask_http_request_exceptions_total[30d]))/sum(rate(flask_http_request_total[30d]))`
+`sum(rate(flask_http_request_exceptions_total[30d]))/sum(rate(flask_http_request_total[30d]))` < 0.05%
+`sum(rate(flask_http_request_total{status=~"2.*|3.*", job="frontend"}[30d]))/sum(rate(flask_http_request_total{job="frontend"}[30d]))` > 99.95%
 
 ## Building KPIs for our plan
 *TODO11*: Now that we have our SLIs and SLOs, create KPIs to accurately measure these metrics. We will make a dashboard for this, but first write them down here.
-In TODO5: I have listed SLIs for the Four Golden Signals: Latency, Traffic, Errors, Saturation. 
+In TODO5: I have listed SLIs for the Four Golden Signals: Latency, Traffic, Errors, Saturation, Availability. I will focus on 2 of them, Latency and Availability. These two KPIs provide value to business as they measure what satisfactory customer experience depends on.
 ## Final Dashboard
 *TODO12*: Create a Dashboard containing graphs that capture all the metrics of your KPIs and adequately representing your SLIs and SLOs. Include a screenshot of the dashboard here, and write a text description of what graphs are represented in the dashboard.  
-Saturation: `cluster:namespace:pod_cpu:active:kube_pod_container_resource_limits-cluster:namespace:pod_cpu:active:kube_pod_container_resource_requests`
-Error: `sum(rate(flask_http_request_total{status=~"4.*|5.*", job="backend"}[24h]))/sum(rate(flask_http_request_total[24h]))`
-Latency: `histogram_quantile(0.95, sum(rate(flask_http_request_duration_seconds_bucket[5m])) by (le))`
-Traffic: `flask_http_request_total`, usually as rate `rate(flask_http_request_total[24h])`
+The dashboard contains one panel each for uptime and latency for both frontend and backend, as well as some other metrics. 
+Latency:  95th percentile of HTTP request rate over 5 minute windows. `histogram_quantile(0.95, sum(rate(flask_http_request_duration_seconds_bucket{job="backend"}[5m])) by (le))` for backend
+and `histogram_quantile(0.95, sum(rate(flask_http_request_duration_seconds_bucket{job="frontend"}[5m])) by (le))` for frontend.
+Uptime: ratio of success requests over total: `sum(rate(flask_http_request_total{status=~"2.*|3.*", job="backend"}[24h]))/sum(rate(flask_http_request_total{job="backend"}[24h]))` for backend and
+`sum(rate(flask_http_request_total{status=~"2.*|3.*", job="frontend"}[24h]))/sum(rate(flask_http_request_total{job="frontend"}[24h]))` for frontend.
+as well as Traffic: `flask_http_request_total`, usually as rate `rate(flask_http_request_total[24h])` : per-second average request rate over the last 24 hours.
+Screenshot: at Project_Starter_Files-Building_a_Metrics_Dashboard/answer-img/TODO12_dashboard.png
 
 ## Steps to run:
 ### set up vagrant and k3s:
 vagrant up
+//`sudo rm -r "/Users/mommy/VirtualBox VMs/exercises_default_1624745025726_74021/"` if `Your VM has become "inaccessible." Unfortunately, this is a critical error
+with VirtualBox that Vagrant can not cleanly recover from. Please open VirtualBox` and then stop and start. 
+and clear out your inaccessible virtual machines or find a way to fix
+them.` Or: open VirtualBox dashboard and "remove" the inaccesible items.
 vagrant ssh
 `sudo cat /etc/rancher/k3s/k3s.yaml`; in vi: gg, d then G: paste into below:
 vi ~/.kube/config
 ### set up monitoring with Prometheus
+//chmod 744 scripts/set_up_prometheus.sh //enter my host machine password
 curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash //helm installed into /usr/local/bin/helm
 `kubectl create namespace monitoring`
 `helm repo add prometheus-community https://prometheus-community.github.io/helm-charts` //"prometheus-community" has been added to your repositories
@@ -89,13 +98,15 @@ curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bas
 //Visit https://github.com/prometheus-operator/kube-prometheus for instructions on how to create & configure Alertmanager and Prometheus instances using the Operator.
 kubectl get pods,svc --namespace=monitoring
 ### set up tracing with Jaeger
-install jaeger per: https://www.jaegertracing.io/docs/1.28/operator/ 
+install jaeger per:  https://www.jaegertracing.io/docs/1.29/operator/
 ### start the applications to be monitored and traced
 kubectl apply -f manifests/app
 `kubectl port-forward service/prometheus-grafana --address 0.0.0.0 5000:80 -n monitoring` 
 `kubectl port-forward -n observability  service/my-trace-query --address 0.0.0.0 16686:16686` # localhost:16686 for jaeger
-`kubectl port-forward  service/frontend-service 8082`                  
-
+`kubectl port-forward  service/frontend 8080`                  
+update ports in frontend accordingly; then rebuild, push, and deploy.
+docker build -t frontend .
+docker tag frontend:latest treefishdocker/frontend:v6.1
 ## Notes:
 https://github.com/opentracing/specification/blob/master/semantic_conventions.md
 `kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.0.3/deploy/static/provider/cloud/deploy.yaml`
@@ -192,7 +203,16 @@ AND: `vagrant global-status --prune` then `vagrant destroy xxxx`
 update vb version per:        
 Error: "mount: /vagrant: unknown filesystem type 'vboxsf'.": https://knowledge.udacity.com/questions/711201
 Error: error: Pod 'backend-68bd676ccd-trxj4' does not have a named port 'backendport' //this is a terminating pod?!
-TODO#6: vagrant@localhost:~> curl localhost:31667/pythonjobs; curl localhost:31667
-curl -X POST -d @tmp.json http://localhost:31667/star --header "Content-Type:application/json"
+TODO#6: vagrant@localhost:~> curl localhost:32335/pythonjobs; curl localhost:31667
+curl -X POST -d @tmp.json http://localhost:32335/star --header "Content-Type:application/json"
 
 when vagrant is slow, vagrant halt; then up again.
+
+fix cors error; rebuild, push, and deploy backend:
+docker push treefishdocker/backend:v4.1
+
+ `curl localhost:32581` for frontend
+ curl localhost:32581/messitup
+
+https://nobl9.com/resources/an-easy-way-to-explain-slos-slas-to-biz-execs/
+"When we measure the performance of a business, there are dozens of metrics we could use, but we typically focus on a few performance indicators that tell us at a glance how the company or a unit within the company is doing. These few metrics are selected because they best express what is truly essential to the company’s success. We call them Key Performance Indicators. "
