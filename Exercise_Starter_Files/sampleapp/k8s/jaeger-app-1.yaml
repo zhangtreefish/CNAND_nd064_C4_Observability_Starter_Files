@@ -5,7 +5,7 @@ metadata:
   labels:
     name: my-sample-app
   annotations:
-    "sidecar.jaegertracing.io/inject": "true"
+    "sidecar.jaegertracing.io/inject": "simpletest"
 spec:
   replicas: 1
   selector:
