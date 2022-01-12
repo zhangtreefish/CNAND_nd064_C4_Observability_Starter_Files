@@ -3,43 +3,47 @@
 ## Verify the monitoring installation
 
 *TODO1:* run `kubectl` command to show the running pods and services for all components. Take a screenshot of the output and include it here to verify the installation
+![monitoring](answer-img/TODO1-monitoring.png "monitoring")
 
 ## Setup the Jaeger and Prometheus source
 *TODO2:* Expose Grafana to the internet and then setup Prometheus as a data source. Provide a screenshot of the home page after logging into Grafana.
-
+![Grafana Login](answer-img/TODO2-grafana_login.png "Grafana Login")
 ## Create a Basic Dashboard
 *TODO3:* Create a dashboard in Grafana that shows Prometheus as a source. Take a screenshot and include it here.
-
+![Grafana](answer-img/TODO3.jpg "Grafana")
 ## Describe SLO/SLI
 *TODO4:* Describe, in your own words, what the SLIs are, based on an SLO of *monthly uptime* and *request response time*.
 If the SLO is "99% monthly Uptime", then the SLI could be the measurement of "proportion HTTP requests that return with 2XX and 3XX status". 
 If the SLO is "99% of all requests will take less than 20ms in a given month (Latency)", then an SLI can be expressed as the "percentage of requests successfully retrieving before 20ms over the past month".
 
 *TODO5:* It is important to know why we want to measure certain metrics for our customer. Describe in detail 5 metrics to measure these SLIs. 
-5.1 traffic: We want to know how often our customers are visiting our application. With that in mind, we can have an SLI of "per-second average requests over the last hour for the past 4 weeks"; the metric can be : `rate(http_requests_total[1h])[4w:10m]`
-5.2 latency: We want our customers to have reasonable response time on our applications. With that in mind, we can have an SLI of "average request duration during the last 5 minutes"; the metric can be: `rate(flask_http_request_duration_seconds_sum[30m])/rate(flask_http_request_duration_seconds_count[30m])`
-5.3  latency: If the SLO is "99% of all requests will take less than 20ms in a given month (Latency)", then an SLI can be expressed as the "percentage of requests successfully retrieving before 20ms over the past month"; metric can be: `sum(rate(prometheus_http_request_duration_seconds_bucket{le="0.02"}[5m])) by (job)/  sum(rate(prometheus_http_request_duration_seconds_count[5m])) by (job)`
+- 5.1 traffic: We want to know how often our customers are visiting our application. With that in mind, we can have an SLI of "per-second average requests over the last hour for the past 4 weeks"; the metric can be : `rate(http_requests_total[1h])[4w:10m]`
+- 5.2 latency: We want our customers to have reasonable response time on our applications. With that in mind, we can have an SLI of "average request duration during the last 5 minutes"; the metric can be: `rate(flask_http_request_duration_seconds_sum[30m])/rate(flask_http_request_duration_seconds_count[30m])`. However, measuring average for latency can be misleading. See 5.3 and 5.4.
+- 5.3 latency: If the SLO is "99% of all requests will take less than 20ms in a given month (Latency)", then an SLI can be expressed as the "percentage of requests successfully retrieving before 20ms over the past month"; metric can be: `sum(rate(prometheus_http_request_duration_seconds_bucket{le="0.02"}[5m])) by (job)/  sum(rate(prometheus_http_request_duration_seconds_count[5m])) by (job)`
 so that we can alert when the ratio goes below 99%, or 
-5.4 latency(continue from 5.3): given the same SLO as in 5.3, another SLI could be the 95th percentile, i.e. "the request duration within which 95% of all requests fall"; the metric could be:
+- 5.4 latency(continue from 5.3): given the same SLO as in 5.3, another SLI could be the 95th percentile, i.e. "the request duration within which 95% of all requests fall"; the metric could be:
 `histogram_quantile(0.95, sum(rate(prometheus_http_request_duration_seconds_bucket[5m])) by (le))`
-5.5 error: We want our application working most if not all of the time for our customers.  An SLI can be "percentage of non 2xx response status code"; the metric can be: `http_requests_total{status!~"20."}/http_requests_total` ; or "percentage of 2xx and 3xx response status code"; the metric: `sum(prometheus_http_requests_total{code=~"2.*|3.*", job="xxx"})/sum(prometheus_http_requests_total{job="xxx"})`
+- 5.5 error: We want our application working most if not all of the time for our customers.  An SLI can be "percentage of non 2xx response status code"; the metric can be: `http_requests_total{status!~"20."}/http_requests_total` ; or "percentage of 2xx and 3xx response status code"; the metric: `sum(prometheus_http_requests_total{code=~"2.*|3.*", job="xxx"})/sum(prometheus_http_requests_total{job="xxx"})`
 
-5.6 saturation: //unused memory in MiB for every instance (on a fictional cluster scheduler exposing these metrics about the instances it runs):
+- 5.6 saturation: //unused memory in MiB for every instance (on a fictional cluster scheduler exposing these metrics about the instances it runs):
 `(instance_memory_limit_bytes - instance_memory_usage_bytes) / 1024 / 1024` 
 //the top 3 CPU users grouped by application (app) and process type (proc) like this:
 `topk(3, sum by (app, proc) (rate(instance_cpu_time_ns[5m])))`
-5.7 availability: We want our app to be available to our customers most of the time. The SLI can "the app returns for 99.995% of the time"; metric: `sum(rate(flask_http_request_total{status!~"4.*|5.*", job="backend"}[24h]))/sum(rate(flask_http_request_total{job="backend"}[24h]))` for backend or `sum(rate(flask_http_request_total{status!~"4.*|5.*", job="frontend"}[24h]))/sum(rate(flask_http_request_total{job="frontend"}[24h]))` for frontend
+- 5.7 availability: We want our app to be available to our customers most of the time. The SLI can "the app returns for 99.995% of the time"; metric: `sum(rate(flask_http_request_total{status!~"4.*|5.*", job="backend"}[24h]))/sum(rate(flask_http_request_total{job="backend"}[24h]))` for backend or `sum(rate(flask_http_request_total{status!~"4.*|5.*", job="frontend"}[24h]))/sum(rate(flask_http_request_total{job="frontend"}[24h]))` for frontend
 
 ## Create a Dashboard to measure our SLIs
 *TODO6:* Create a dashboard to measure the uptime of the frontend and backend services. We will also want to measure to measure 40x and 50x errors. Create a dashboard that show these values over a 24 hour period and take a screenshot.
 uptime: `sum(rate(flask_http_request_total{status=~"2.*|3.*", job="backend"}[24h]))/sum(rate(flask_http_request_total{job="backend"}[24h]))`
 error rate:`sum(rate(flask_http_request_total{status=~"4.*|5.*", job="backend"}[24h]))/sum(rate(flask_http_request_total{job="backend"}[24h]))`
+![backend](answer-img/TODO6_backend.png "backend")
 
 ## Tracing our Flask App
 *TODO7:*  We will create a Jaeger span to measure the processes on the backend. Once you fill in the span, provide a screenshot of it here.
+![Jaeger trace](answer-img/TODO7_jaeger_trace.png "Jaeger Trace")
 
 ## Jaeger in Dashboards
 *TODO8:* Now that the trace is running, let's add the metric to our current Grafana dashboard. Once this is completed, provide a screenshot of it here.
+![Grafana Jaeger](answer-img/TODO8_grafana_jaeger.png "Grafana Jaeger")
 
 ## Report Error
 *TODO9:* Using the template below, write a trouble ticket for the developers, to explain the errors that you are seeing (400, 500, latency) and to let them know the file that is causing the issue.
@@ -54,26 +58,40 @@ Affected Area: "backend" project, span "get-python-jobs"
 Severity: Critical(404)
 
 Description: Dashboard link: see TODO9_backend_404.png in answer-img/.
+![error tracing](answer-img/TODO9_backend_404.png "error tracing")
 
 ## Creating SLIs and SLOs
 *TODO10:* We want to create an SLO guaranteeing that our application has a 99.95% uptime per month. Name three SLIs that you would use to measure the success of this SLO.
-`sum(rate(flask_http_request_total{status=~"2.*|3.*", job="backend"}[30d]))/sum(rate(flask_http_request_total{job="backend"}[30d]))` > 99.95%
-`sum(rate(flask_http_request_total{status!~"4.*|5.*", job="backend"}[30d]))/sum(rate(flask_http_request_total[30d]))` < 0.05%
-`sum(rate(flask_http_request_exceptions_total[30d]))/sum(rate(flask_http_request_total[30d]))` < 0.05%
-`sum(rate(flask_http_request_total{status=~"2.*|3.*", job="frontend"}[30d]))/sum(rate(flask_http_request_total{job="frontend"}[30d]))` > 99.95%
+- `sum(rate(flask_http_request_total{status=~"2.*|3.*", job="backend"}[30d]))/sum(rate(flask_http_request_total{job="backend"}[30d]))` > 99.95%
+- `sum(rate(flask_http_request_total{status!~"4.*|5.*", job="frontend"}[30d]))/sum(rate(flask_http_request_total{job="frontend"}[30d]))` > 99.95%
+- `sum(rate(flask_http_request_exceptions_total[30d]))/sum(rate(flask_http_request_total[30d]))` < 0.05%
+- `sum(rate(flask_http_request_total{status=~"2.*|3.*", job="frontend"}[30d]))/sum(rate(flask_http_request_total{job="frontend"}[30d]))` > 99.95%
+![backend dashboard](answer-img/TODO10_backend_dashboard.png "backend dashboard")
 
 ## Building KPIs for our plan
 *TODO11*: Now that we have our SLIs and SLOs, create KPIs to accurately measure these metrics. We will make a dashboard for this, but first write them down here.
-In TODO5: I have listed SLIs for the Four Golden Signals: Latency, Traffic, Errors, Saturation, Availability. I will focus on 2 of them, Latency and Availability. These two KPIs provide value to business as they measure what satisfactory customer experience depends on.
+In TODO5: I have listed SLIs for the Four Golden Signals: Latency, Traffic, Errors, Saturation, Availability. 
+I will have to agree with Marcin in his post regarding the relationship between KPI and SLI: https://knowledge.udacity.com/questions/693931 .  The term  KPI predates
+google's SLO and SLI. KPI is what business world describes a measurement of certain goals, much as SLI is used to describe measurement of goals in the context of services
+such as microservices. Given the above understanding, I will focus on Latency and Availability. These two metrics provide value to IT business as they measure what satisfactory customer experience depends on.
 ## Final Dashboard
 *TODO12*: Create a Dashboard containing graphs that capture all the metrics of your KPIs and adequately representing your SLIs and SLOs. Include a screenshot of the dashboard here, and write a text description of what graphs are represented in the dashboard.  
 The dashboard contains one panel each for uptime and latency for both frontend and backend, as well as some other metrics. 
-Latency:  95th percentile of HTTP request rate over 5 minute windows. `histogram_quantile(0.95, sum(rate(flask_http_request_duration_seconds_bucket{job="backend"}[5m])) by (le))` for backend
-and `histogram_quantile(0.95, sum(rate(flask_http_request_duration_seconds_bucket{job="frontend"}[5m])) by (le))` for frontend.
-Uptime: ratio of success requests over total: `sum(rate(flask_http_request_total{status=~"2.*|3.*", job="backend"}[24h]))/sum(rate(flask_http_request_total{job="backend"}[24h]))` for backend and
-`sum(rate(flask_http_request_total{status=~"2.*|3.*", job="frontend"}[24h]))/sum(rate(flask_http_request_total{job="frontend"}[24h]))` for frontend.
-as well as Traffic: `flask_http_request_total`, usually as rate `rate(flask_http_request_total[24h])` : per-second average request rate over the last 24 hours.
+Latency:  "95th percentile of HTTP request latency over last 5 minute."
+- "backend latency" panel: `histogram_quantile(0.95, sum(rate(flask_http_request_duration_seconds_bucket{job="backend"}[5m])) by (le))` 
+- "frontend latency" panel: `histogram_quantile(0.95, sum(rate(flask_http_request_duration_seconds_bucket{job="frontend"}[5m])) by (le))` for frontend.
+Uptime: "ratio of success requests over total": 
+- "backend uptime" panel: `sum(rate(flask_http_request_total{status=~"2.*|3.*", job="backend"}[24h]))/sum(rate(flask_http_request_total{job="backend"}[24h]))` 
+- "frontend uptime" panel: `sum(rate(flask_http_request_total{status=~"2.*|3.*", job="frontend"}[24h]))/sum(rate(flask_http_request_total{job="frontend"}[24h]))` 
+or as "ratio of non-error requests over total":
+- "backend non failure ratio" panel: `sum(rate(flask_http_request_total{status!~"4.*|5.*", job="backend"}[30d]))/sum(rate(flask_http_request_total{job="backend"}[30d]))`
+- "frontend non-failure ratio" panel: `sum(rate(flask_http_request_total{status!~"4.*|5.*", job="frontend"}[30d]))/sum(rate(flask_http_request_total{job="frontend"}[30d]))` 
+as well as Traffic: 
+- "flask traffic" panel: usually as rate `rate(flask_http_request_total[24h])` : per-second average request rate over the last 24 hours.
 Screenshot: at Project_Starter_Files-Building_a_Metrics_Dashboard/answer-img/TODO12_dashboard.png
+
+![Dashboard](answer-img/TODO12_dashboard.png "Dashboard")
+
 
 ## Steps to run:
 ### set up vagrant and k3s:
